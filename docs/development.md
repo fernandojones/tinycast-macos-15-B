@@ -84,6 +84,9 @@ swiftc -swift-version 6 Tinycast/Core/ClipboardStore.swift Tools/clipboard-test.
     -o /tmp/clipboard-test && /tmp/clipboard-test                 # clipboard store
 swiftc -swift-version 6 Tinycast/Core/SearchScopes.swift Tools/scopes-test.swift \
     -o /tmp/scopes-test && /tmp/scopes-test                       # launcher search scopes
+swiftc -swift-version 6 Tinycast/Core/Backup/{Gunzip,RaycastExportDecoder,Scrypt}.swift \
+    Tools/raycast-import-test.swift -o /tmp/raycast-import-test \
+    && /tmp/raycast-import-test                                  # Raycast export decryption
 ```
 
 `Tools/fuzz-test.swift` holds a **copy** of `FuzzyMatch` from `Tinycast/Core/AppIndex.swift` —

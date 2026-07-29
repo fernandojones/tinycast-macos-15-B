@@ -79,6 +79,7 @@
 		DEC660F280699E43AA028E8A /* HotKeyCenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DB0D6E17E2B2D6F2CB47E0D /* HotKeyCenter.swift */; };
 		E5072CA7D34BA877D97DF392 /* ImageThumbnail.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99945F0952ADADBBEB9B8388 /* ImageThumbnail.swift */; };
 		E952B659AEB905A3B233F78B /* EmojiGridView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB94F0767AE0A5855FB22BF6 /* EmojiGridView.swift */; };
+		E9E1414AC4D125C0E2034C3A /* RaycastExportDecoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C139554A889538E030F5A80 /* RaycastExportDecoder.swift */; };
 		F25D58ED6EF3308D38D01732 /* PaletteWindowController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5447AEAD87BFE0E2D979B39 /* PaletteWindowController.swift */; };
 		F2B68DBA258D85DD5C6DC1CC /* Paster.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6185011A02366B30B48B5B6C /* Paster.swift */; };
 		F5F3381FF70997223F8888B0 /* KeyShortcut.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C3EB07C07902C53BFD3B08B /* KeyShortcut.swift */; };
@@ -101,6 +102,7 @@
 		297F819E291F33E43E490359 /* MiscellaneousSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MiscellaneousSettingsView.swift; sourceTree = "<group>"; };
 		299122624B5E1BA2C5400478 /* CalcCurrency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalcCurrency.swift; sourceTree = "<group>"; };
 		2B629EC3B716FEE881BB0075 /* TinycastApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TinycastApp.swift; sourceTree = "<group>"; };
+		2C139554A889538E030F5A80 /* RaycastExportDecoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaycastExportDecoder.swift; sourceTree = "<group>"; };
 		2C3EB07C07902C53BFD3B08B /* KeyShortcut.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeyShortcut.swift; sourceTree = "<group>"; };
 		2FC323070A08CD17DFFB2F8A /* BackupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupSettingsView.swift; sourceTree = "<group>"; };
 		32A53295959552ED28D34960 /* Gunzip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Gunzip.swift; sourceTree = "<group>"; };
@@ -317,6 +319,7 @@
 			children = (
 				C9D8C2C59C2B578CFE61E004 /* BackupActions.swift */,
 				32A53295959552ED28D34960 /* Gunzip.swift */,
+				2C139554A889538E030F5A80 /* RaycastExportDecoder.swift */,
 				B4049668745FD438D5792A2F /* RaycastImport.swift */,
 				EDE0C0DC05F958A4B4DCAA8C /* Scrypt.swift */,
 				5043CD44B4B40C49BE79852A /* SettingsBackup.swift */,
@@ -520,6 +523,7 @@
 				32697AB3853D043A12888B96 /* Permissions.swift in Sources */,
 				2085C9433B7534044E0A8A7D /* PermissionsSettingsView.swift in Sources */,
 				80F1A591DB0F5385F5C9A06C /* PopoverMenu.swift in Sources */,
+				E9E1414AC4D125C0E2034C3A /* RaycastExportDecoder.swift in Sources */,
 				8EF55652F19A1E0C5FF644B4 /* RaycastImport.swift in Sources */,
 				ABBB2A811EB5C69D55A93B1C /* RaycastImportSelection.swift in Sources */,
 				5568D02AE095293A15A7F30D /* RightClick.swift in Sources */,

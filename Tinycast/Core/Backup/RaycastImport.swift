@@ -1,20 +1,5 @@
 import AppKit
-import CryptoKit
 import Foundation
-
-enum RaycastImportError: LocalizedError {
-    case notRaycastFile
-    case incorrectPassphrase
-    case corrupt
-
-    var errorDescription: String? {
-        switch self {
-        case .notRaycastFile: return "This doesn't look like a Raycast export (.rayconfig)."
-        case .incorrectPassphrase: return "Incorrect passphrase, or the file is corrupted."
-        case .corrupt: return "The Raycast export could not be read."
-        }
-    }
-}
 
 /// The independently importable categories in a Raycast export, so the user can pick a subset.
 struct RaycastImportOptions: OptionSet, Sendable {
@@ -33,7 +18,7 @@ struct RaycastImportOptions: OptionSet, Sendable {
     ]
 }
 
-/// Decrypts a Raycast `.rayconfig` export and maps the subset Tinycast supports. Format: gzip → JSON envelope → hex ciphertext decrypted with AES-256-GCM under a scrypt(N=16384,r=8,p=1) key → gunzip → settings JSON. Decrypt is CPU-heavy (scrypt) and pure Foundation/CryptoKit, so run it off the main actor.
+/// Decrypts Raycast X and classic macOS `.rayconfig` exports and maps the subset Tinycast supports. Decrypt is CPU-heavy and runs off the main actor.
 enum RaycastImport {
     struct Result {
         var backup: SettingsBackup
@@ -102,32 +87,7 @@ enum RaycastImport {
     // MARK: - Decrypt
 
     static func decrypt(file: URL, passphrase: String) throws -> Data {
-        let raw = try Data(contentsOf: file)
-        guard let envelopeData = try? Gunzip.decompress(raw),
-            let env = try? JSONSerialization.jsonObject(with: envelopeData) as? [String: Any],
-            let dataHex = env["data"] as? String,
-            let enc = env["encryption"] as? [String: String],
-            let iv = enc["iv"].flatMap(Data.init(hex:)),
-            let salt = enc["salt"].flatMap(Data.init(hex:)),
-            let tag = enc["authTag"].flatMap(Data.init(hex:)),
-            let ciphertext = Data(hex: dataHex)
-        else { throw RaycastImportError.notRaycastFile }
-
-        let key = Scrypt.derive(
-            passphrase: Array(passphrase.utf8), salt: [UInt8](salt), n: 16384, r: 8, p: 1, dkLen: 32)
-
-        let plaintextGz: Data
-        do {
-            let box = try AES.GCM.SealedBox(
-                nonce: try AES.GCM.Nonce(data: iv), ciphertext: ciphertext, tag: tag)
-            plaintextGz = try AES.GCM.open(box, using: SymmetricKey(data: key))
-        } catch {
-            throw RaycastImportError.incorrectPassphrase
-        }
-        guard let plaintext = try? Gunzip.decompress(plaintextGz) else {
-            throw RaycastImportError.corrupt
-        }
-        return plaintext
+        try RaycastExportDecoder.decrypt(Data(contentsOf: file), passphrase: passphrase)
     }
 
     // MARK: - Map
@@ -198,10 +158,36 @@ enum RaycastImport {
             data.showFavoritesInCompactMode = showFavorites
             mapped = true
         }
+
+        let classic = json["builtin_package_raycastPreferences"] as? [String: Any]
+        let appearance = classic?["preferencesAppearance"] as? [String: Any]
+        let advanced = classic?["preferencesAdvanced"] as? [String: Any]
+        if let showInMenuBar = appearance?["statusBarIsVisible"] as? Bool {
+            data.showInMenuBar = showInMenuBar
+            mapped = true
+        }
+        if let secs = advanced?["popToRootTimeout"] as? Int,
+            let timeout = PopToRootTimeout(rawValue: secs)
+        {
+            data.popToRootSeconds = timeout.rawValue
+            mapped = true
+        }
+        if let mode = appearance?["raycastPreferredWindowMode"] as? String {
+            data.compactMode = (mode == "compact")
+            mapped = true
+        }
+        if let showFavorites = appearance?["showFavoritesInCompactMode"] as? Bool {
+            data.showFavoritesInCompactMode = showFavorites
+            mapped = true
+        }
+        if let useHyperKeyIcon = advanced?["useHyperKeyIcon"] as? Bool {
+            data.hyperKeyReplacesGlyph = useHyperKeyIcon
+            mapped = true
+        }
         return mapped ? data : nil
     }
 
-    /// Raycast stores the palette hotkey under `general.globalHotkey` and per-command hotkeys (clipboard, emoji, app launchers) under `commands[].macosHotkey`, all in the same `kind.shortcut` shape. Raycast uses the same Carbon keycodes and modifier names Tinycast does, so `LayoutIndependent` shortcuts map directly; character-based (`LayoutDependent`) ones are skipped since Tinycast keys on keycodes. Hyper Key shortcuts need no special-casing: Raycast exports them expanded into the four explicit modifiers, and the physical key itself comes over via `hyperKeyCode` in `mapSettings`.
+    /// Raycast X uses structured shortcuts; classic exports use `Modifier-…-CarbonKeyCode` strings.
     private static func mapHotkeys(_ json: [String: Any]) -> SettingsBackup.HotkeyBackup? {
         let settings = json["settings"] as? [String: Any]
         var hotkeys = SettingsBackup.HotkeyBackup()
@@ -235,6 +221,32 @@ enum RaycastImport {
                 break
             }
         }
+
+        let classic = json["builtin_package_raycastPreferences"] as? [String: Any]
+        let classicGeneral = classic?["preferencesGeneral"] as? [String: Any]
+        if let shortcut = classicKeyShortcut(from: classicGeneral?["raycastGlobalHotkey"]) {
+            hotkeys.togglePalette = shortcut
+            mapped = true
+        }
+        let rootSearch = json["builtin_package_rootSearch"] as? [String: Any]
+        for item in rootSearch?["rootSearch"] as? [[String: Any]] ?? [] {
+            guard let shortcut = classicKeyShortcut(from: item["hotkey"]) else { continue }
+            switch item["key"] as? String {
+            case "builtin_command_clipboardHistory":
+                hotkeys.toggleClipboard = shortcut
+                mapped = true
+            case "builtin_command_searchEmoji":
+                hotkeys.toggleEmoji = shortcut
+                mapped = true
+            default:
+                if let path = item["path"] as? String,
+                    let bundleID = Bundle(url: URL(fileURLWithPath: path))?.bundleIdentifier
+                {
+                    apps[bundleID] = shortcut
+                    mapped = true
+                }
+            }
+        }
         if !apps.isEmpty { hotkeys.apps = apps }
         return mapped ? hotkeys : nil
     }
@@ -262,11 +274,28 @@ enum RaycastImport {
             carbonKeyCode: code, carbonModifiers: KeyShortcut.carbonModifiers(from: flags))
     }
 
-    /// Raycast marks favorited items with `favoriteOrder` (0-based). Only app favorites map to Tinycast, keyed by bundle ID (the same key `FavoritesStore` uses), preserving Raycast's order.
+    private static func classicKeyShortcut(from hotkey: Any?) -> KeyShortcut? {
+        guard let raw = hotkey as? String else { return nil }
+        var parts = raw.split(separator: "-").map(String.init)
+        guard let keyCode = parts.popLast().flatMap(Int.init) else { return nil }
+        var flags: NSEvent.ModifierFlags = []
+        for part in parts {
+            switch part.lowercased() {
+            case "command", "cmd": flags.insert(.command)
+            case "control", "ctrl": flags.insert(.control)
+            case "option", "alt": flags.insert(.option)
+            case "shift": flags.insert(.shift)
+            default: return nil
+            }
+        }
+        return KeyShortcut(
+            carbonKeyCode: keyCode, carbonModifiers: KeyShortcut.carbonModifiers(from: flags))
+    }
+
+    /// Maps Raycast X `favoriteOrder` entries and classic pinned app items, preserving their order.
     private static func mapFavorites(_ json: [String: Any]) -> [String]? {
-        guard let commands = (json["settings"] as? [String: Any])?["commands"] as? [[String: Any]]
-        else { return nil }
-        let favorites =
+        let commands = (json["settings"] as? [String: Any])?["commands"] as? [[String: Any]] ?? []
+        var favorites =
             commands
             .compactMap { command -> (order: Int, bundleID: String)? in
                 guard let order = command["favoriteOrder"] as? Int,
@@ -278,6 +307,32 @@ enum RaycastImport {
             }
             .sorted { $0.order < $1.order }
             .map(\.bundleID)
+
+        let rootSearch = (json["builtin_package_rootSearch"] as? [String: Any])?["rootSearch"]
+            as? [[String: Any]] ?? []
+        var pathsByKey: [String: String] = [:]
+        for item in rootSearch {
+            if let key = item["key"] as? String, let path = item["path"] as? String {
+                pathsByKey[key] = path
+            }
+        }
+        let pinned = (json["builtin_package_navigation"] as? [String: Any])?["pinnedMenuItems"]
+            as? [Any] ?? []
+        for item in pinned {
+            let path: String?
+            if let dict = item as? [String: Any] {
+                path = dict["path"] as? String
+            } else if let key = item as? String {
+                path = key.hasSuffix(".app") ? key : pathsByKey[key]
+            } else {
+                path = nil
+            }
+            if let path, let bundleID = Bundle(url: URL(fileURLWithPath: path))?.bundleIdentifier,
+                !favorites.contains(bundleID)
+            {
+                favorites.append(bundleID)
+            }
+        }
         return favorites.isEmpty ? nil : favorites
     }
 
@@ -360,30 +415,5 @@ enum RaycastImport {
             }
         }
         return nil
-    }
-}
-
-extension Data {
-    /// Parses an even-length hex string; returns nil on any non-hex character.
-    init?(hex: String) {
-        let chars = Array(hex.utf8)
-        guard chars.count % 2 == 0 else { return nil }
-        var bytes = [UInt8]()
-        bytes.reserveCapacity(chars.count / 2)
-        func nibble(_ c: UInt8) -> UInt8? {
-            switch c {
-            case 0x30...0x39: return c - 0x30
-            case 0x61...0x66: return c - 0x61 + 10
-            case 0x41...0x46: return c - 0x41 + 10
-            default: return nil
-            }
-        }
-        var i = 0
-        while i < chars.count {
-            guard let hi = nibble(chars[i]), let lo = nibble(chars[i + 1]) else { return nil }
-            bytes.append(hi << 4 | lo)
-            i += 2
-        }
-        self = Data(bytes)
     }
 }
