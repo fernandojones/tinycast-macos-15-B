@@ -96,7 +96,7 @@ enum Theme {
         /// Settings grouped "card": a faint raised surface whose hairline border doubles as the inset row divider.
         static let cardFill = Color.white.opacity(0.05)
         static let cardStroke = Color.white.opacity(0.10)
-        /// Whitish tint layered into the Liquid Glass floating controls (action group + menu circle) so the glass reads frosted rather than clear.
+        /// Whitish tint shared by Liquid Glass and the legacy material fallback.
         static let glassFrost = Color.white.opacity(0.05)
         /// The violet of the app mark. The one non-white hue in the system, used only to tint the About support callout.
         static let brand = Color(red: 0.525, green: 0.231, blue: 1.0)
@@ -135,8 +135,32 @@ struct KeyCapChip: View {
 
 extension View {
     /// A floating Liquid Glass control surface (action group + menu button), interactive for native lensing with a whitish frost tint so it reads brighter than clear glass.
-    func frosted(in shape: some Shape) -> some View {
-        glassEffect(.regular.interactive().tint(Theme.Colors.glassFrost), in: shape)
-            .tint(.clear)
+    func frosted<S: InsettableShape>(in shape: S) -> AnyView {
+        if #available(macOS 26.0, *) {
+            return AnyView(
+                glassEffect(.regular.interactive().tint(Theme.Colors.glassFrost), in: shape)
+                    .tint(.clear)
+            )
+        } else {
+            return AnyView(
+                background(Theme.Colors.glassFrost, in: shape)
+                    .background(.thinMaterial, in: shape)
+                    .overlay(shape.strokeBorder(Theme.Colors.border, lineWidth: 1))
+            )
+        }
+    }
+
+    /// A non-interactive menu surface with legacy elevation on macOS versions before Liquid Glass.
+    func frostedMenu<S: InsettableShape>(in shape: S) -> AnyView {
+        if #available(macOS 26.0, *) {
+            return AnyView(glassEffect(.regular, in: shape))
+        } else {
+            return AnyView(
+                background(Theme.Colors.glassFrost, in: shape)
+                    .background(.thinMaterial, in: shape)
+                    .overlay(shape.strokeBorder(Theme.Colors.border, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.28), radius: 14, y: 6)
+            )
+        }
     }
 }

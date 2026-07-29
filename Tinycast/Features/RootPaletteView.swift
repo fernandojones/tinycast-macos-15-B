@@ -193,7 +193,7 @@ struct RootPaletteView: View {
         let showActionGroup = count > 0 && !(calcSelected && !calcActionable)
 
         // The `header` (and its single search field) is always attached in the same position via safeAreaInset so its focus survives the compact↔expanded swap — only the results below it toggle. Collapsed shows the bar alone; expanded floats header + action bar over the list with edge-dissolve (see docs/ui.md).
-        return Group {
+        let surface = AnyView(Group {
             if isCollapsed {
                 Color.clear
             } else {
@@ -243,8 +243,9 @@ struct RootPaletteView: View {
         .background(Color.black.opacity(Theme.Colors.panelDimming))
         .background(VisualEffectView())
         .clipShape(RoundedRectangle(cornerRadius: Theme.Radius.panel, style: .continuous))
+        )
         // Every show bumps focusToken — refocus search and drop any menu left open from last time (e.g. dismissed by clicking away with a context menu up).
-        .onChange(of: vm.focusToken) {
+        let observed = AnyView(surface.onChange(of: vm.focusToken) {
             searchFocused = true
             showActions = false
             showAppMenu = false
@@ -294,8 +295,9 @@ struct RootPaletteView: View {
         .onAppear { searchFocused = true }
         // Typing/clearing/overflow/settings all flip `paletteIsCollapsed`; resize the window to match.
         .onChange(of: core.paletteIsCollapsed) { core.syncPaletteSize() }
+        )
         // ⌘1–⌘5 launch the compact bar's favorite slots (or expand, for the "…" overflow slot).
-        .onKeyPress(keys: ["1", "2", "3", "4", "5"], phases: .down) { press in
+        return observed.onKeyPress(keys: ["1", "2", "3", "4", "5"], phases: .down) { press in
             guard isCollapsed, settings.showFavoritesInCompactMode,
                 press.modifiers.contains(.command),
                 let digit = press.key.character.wholeNumberValue

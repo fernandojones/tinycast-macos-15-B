@@ -79,9 +79,8 @@ struct PopoverMenu: View {
         }
         .padding(Theme.Spacing.sm)
         .frame(width: Theme.Size.menuWidth)
-        // Tahoe glass carries its own elevation/shadow; a hand-tuned drop shadow on top reads heavy and non-native, so we let the glass own it.
-        .glassEffect(
-            .regular, in: RoundedRectangle(cornerRadius: Theme.Radius.menuPanel, style: .continuous)
+        .frostedMenu(
+            in: RoundedRectangle(cornerRadius: Theme.Radius.menuPanel, style: .continuous)
         )
     }
 }

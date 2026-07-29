@@ -4,7 +4,7 @@ How to build, test, package, and release Tinycast.
 
 ## Requirements
 
-- macOS 26 or later (Liquid Glass).
+- macOS 15 or later (Liquid Glass on macOS 26+, material fallback on earlier versions).
 - Xcode 26 installed — it provides the SwiftUI macro plugin and SDK used to build.
 
 ## First-time setup
