@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build a signed Tinycast.app and pack it into build/Tinycast-<version>.dmg. Usage: ./build-dmg.sh [version]
+# Build A more signed Tinycast.app and pack it into build/Tinycast-<version>.dmg. Usage: ./build-dmg.sh [version]
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"; cd "$ROOT"

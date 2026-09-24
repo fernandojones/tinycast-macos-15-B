@@ -1,4 +1,4 @@
-name: Build macOS DMG
+name: Build MacOS DMG
 
 on:
   push:
