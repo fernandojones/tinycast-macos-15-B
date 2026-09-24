@@ -4,12 +4,17 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")" && pwd)"; cd "$ROOT"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
-IDENTITY="Tinycast Self-Signed"
+
+# Permite definir a identidade via variável de ambiente (padrão local continua 'Tinycast Self-Signed')
+IDENTITY="${CODESIGN_IDENTITY:-Tinycast Self-Signed}"
 DERIVED="build/DerivedData"
 
-if ! security find-identity -p codesigning | grep -q "$IDENTITY"; then
-    echo "✗ '$IDENTITY' code-signing identity not found — create it once (docs/signing.md)." >&2
-    exit 1
+# Se não for assinatura ad-hoc (-), valida se a identidade existe no chaveiro
+if [ "$IDENTITY" != "-" ]; then
+    if ! security find-identity -p codesigning | grep -q "$IDENTITY"; then
+        echo "✗ '$IDENTITY' code-signing identity not found — create it once (docs/signing.md)." >&2
+        exit 1
+    fi
 fi
 
 echo "▸ Building signed Tinycast.app (Release)…"

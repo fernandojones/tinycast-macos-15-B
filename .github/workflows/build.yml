@@ -18,21 +18,12 @@ jobs:
       with:
         xcode-version: latest
 
-    - name: Patch build script to use ad-hoc signing
-      run: |
-        python3 -c "
-        with open('build-dmg.sh', 'r') as f:
-            content = f.read()
-        # Substitui a identidade fixa por assinatura ad-hoc em todo o arquivo
-        new_content = content.replace(\"'Tinycast Self-Signed'\", \"-\")
-        with open('build-dmg.sh', 'w') as f:
-            f.write(new_content)
-        "
-
     - name: Make build script executable
       run: chmod +x build-dmg.sh
 
     - name: Build DMG
+      env:
+        CODESIGN_IDENTITY: "-"
       run: ./build-dmg.sh
 
     - name: Upload DMG Artifact
