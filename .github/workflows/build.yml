@@ -18,12 +18,19 @@ jobs:
       with:
         xcode-version: latest
 
-    - name: Import self-signed certificate into default login keychain
+    - name: Create and configure custom build keychain
+      run: |
+        security create-keychain -p "ci_password" build.keychain
+        security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed 's/"//g')
+        security unlock-keychain -p "ci_password" build.keychain
+        security set-keychain-settings -t 3600 -l build.keychain
+
+    - name: Generate and import self-signed certificate
       run: |
         openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=Tinycast Self-Signed"
         openssl pkcs12 -export -out identity.p12 -inkey key.pem -in cert.pem -passout pass:ci_password -legacy
-        security import identity.p12 -k ~/Library/Keychains/login.keychain-db -P "ci_password" -A -T /usr/bin/codesign
-        security set-key-partition-list -S apple-todo:,apple: -s -k "" ~/Library/Keychains/login.keychain-db
+        security import identity.p12 -k build.keychain -P "ci_password" -A -T /usr/bin/codesign
+        security set-key-partition-list -S apple-todo:,apple: -s -k "ci_password" build.keychain
         rm key.pem cert.pem identity.p12
 
     - name: Make build script executable
