@@ -18,15 +18,15 @@ jobs:
       with:
         xcode-version: latest
 
-    - name: Remove strict identity check from build script
+    - name: Patch build script to use ad-hoc signing
       run: |
         python3 -c "
         with open('build-dmg.sh', 'r') as f:
-            lines = f.readlines()
-        # Filtra e remove a linha que valida a identidade de assinatura
-        new_lines = [line for line in lines if 'code-signing identity not found' not in line]
-        with open('build.sh' if 'build.sh' in 'build-dmg.sh' else 'build-dmg.sh', 'w') as f:
-            f.writelines(new_lines)
+            content = f.read()
+        # Substitui a identidade fixa por assinatura ad-hoc em todo o arquivo
+        new_content = content.replace(\"'Tinycast Self-Signed'\", \"-\")
+        with open('build-dmg.sh', 'w') as f:
+            f.write(new_content)
         "
 
     - name: Make build script executable
