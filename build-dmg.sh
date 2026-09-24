@@ -21,6 +21,7 @@ echo "▸ Building signed Tinycast.app (Release)…"
 xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
     -derivedDataPath "$DERIVED" \
     CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" OTHER_CODE_SIGN_FLAGS="--timestamp=none" \
+    ARCHS="x86_64 arm64" \
     ${1:+MARKETING_VERSION="$1"} \
     build
 
