@@ -20,9 +20,7 @@ jobs:
 
     - name: Create and configure build keychain
       run: |
-        # Cria um chaveiro customizado temporário com senha vazia
         security create-keychain -p "" build.keychain
-        # Adiciona o chaveiro à lista de busca do sistema e o define como padrão
         security list-keychains -d user -s build.keychain $(security list-keychains -d user | sed 's/"//g')
         security unlock-keychain -p "" build.keychain
         security set-keychain-settings -t 3600 -l build.keychain
@@ -30,10 +28,10 @@ jobs:
     - name: Generate and import self-signed certificate
       run: |
         openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=Tinycast Self-Signed"
-        security import key.pem -k build.keychain -A
-        security import cert.pem -k build.keychain -A
+        openssl pkcs12 -export -out identity.p12 -inkey key.pem -in cert.pem -passout pass:ci_password
+        security import identity.p12 -k build.keychain -P "ci_password" -A -T /usr/bin/codesign
         security set-key-partition-list -S apple-todo:,apple: -s -k "" build.keychain
-        rm key.pem cert.pem
+        rm key.pem cert.pem identity.p12
 
     - name: Make build script executable
       run: chmod +x build-dmg.sh
