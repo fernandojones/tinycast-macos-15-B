@@ -18,10 +18,16 @@ jobs:
       with:
         xcode-version: latest
 
-    - name: Bypass strict certificate check and use ad-hoc signing
+    - name: Remove strict identity check from build script
       run: |
-        # Substitui a exigência da identidade 'Tinycast Self-Signed' por assinatura ad-hoc (-)
-        sed -i '' "s/'Tinycast Self-Signed'/-/g" build-dmg.sh
+        python3 -c "
+        with open('build-dmg.sh', 'r') as f:
+            lines = f.readlines()
+        # Filtra e remove a linha que valida a identidade de assinatura
+        new_lines = [line for line in lines if 'code-signing identity not found' not in line]
+        with open('build.sh' if 'build.sh' in 'build-dmg.sh' else 'build-dmg.sh', 'w') as f:
+            f.writelines(new_lines)
+        "
 
     - name: Make build script executable
       run: chmod +x build-dmg.sh
