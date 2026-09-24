@@ -18,12 +18,19 @@ jobs:
       with:
         xcode-version: latest
 
-    - name: Import self-signed certificate into login keychain
+    - name: Create and configure build keychain
+      run: |
+        security create-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security unlock-keychain -p "" build.keychain
+        security set-keychain-settings -t 3600 -l build.keychain
+
+    - name: Generate and import self-signed certificate
       run: |
         openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=Tinycast Self-Signed"
-        security import key.pem -k ~/Library/Keychains/login.keychain-db -A
-        security import cert.pem -k ~/Library/Keychains/login.keychain-db -A
-        security set-key-partition-list -S apple-todo:,apple: -s -k "" ~/Library/Keychains/login.keychain-db
+        security import key.pem -k build.keychain -A
+        security import cert.pem -k build.keychain -A
+        security set-key-partition-list -S apple-todo:,apple: -s -k "" build.keychain
         rm key.pem cert.pem
 
     - name: Make build script executable
