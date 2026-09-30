@@ -1,8 +1,7 @@
 #!/bin/bash
-# Build a signed Tinycast.app and pack it into build/Tinycast-.dmg. Usage: ./build-dmg.sh [version]
 set -euo pipefail
 
-ROOT="\((cd "\)(dirname "$0")" && pwd)"
+ROOT=`cd \`dirname "$0"\` && pwd`
 cd "$ROOT"
 export DEVELOPER_DIR="${DEVELOPER_DIR:-/Applications/Xcode.app/Contents/Developer}"
 
@@ -26,15 +25,15 @@ xcodebuild -project Tinycast.xcodeproj -scheme Tinycast -configuration Release \
     build
 
 APP="$DERIVED/Build/Products/Release/Tinycast.app"
-VERSION="\((/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "\)APP/Contents/Info.plist")"
+VERSION=`/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Contents/Info.plist"`
 DMG="build/Tinycast-${VERSION}.dmg"
 
 echo "▸ Packaging ${DMG}"
-STAGE="$(mktemp -d)"
-cp -R "\(APP" "\)STAGE/"
+STAGE=`mktemp -d`
+cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
 rm -f "$DMG"
-diskutil image create from "\(STAGE" --format UDZO --volumeName "Tinycast" "\)DMG" >/dev/null
+diskutil image create from "$STAGE" --format UDZO --volumeName "Tinycast" "$DMG" >/dev/null
 rm -rf "$STAGE"
 
 echo "✓ $DMG"
