@@ -62,6 +62,9 @@ enum SystemActionRunner {
             try await runAppleScript("tell application \"System Events\" to shut down")
         case .logOut:
             try await runAppleScript("tell application \"System Events\" to log out")
+        // tinycast-space: Raycast's Confetti; the overlay closes itself.
+        case .confetti:
+            ConfettiOverlay.fire()
         case .showScreenSaver:
             let url = URL(fileURLWithPath: "/System/Library/CoreServices/ScreenSaverEngine.app")
             guard FileManager.default.fileExists(atPath: url.path) else {

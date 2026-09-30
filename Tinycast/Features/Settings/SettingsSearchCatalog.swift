@@ -158,6 +158,9 @@ enum SettingsSearchCatalog {
             .generalHyperKey, "Quick Press",
             keywords: ["tap", "escape", "single press"]),
         .init(
+            .generalHyperKey, "Show ✦ for another app's Hyper key",
+            keywords: ["glyph", "karabiner", "hyperkey", "external", "modifier"]),
+        .init(
             .generalHyperKey, "Include Shift (⇧)",
             keywords: ["modifier", "chord"]),
         .init(

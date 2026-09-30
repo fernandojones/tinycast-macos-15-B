@@ -382,7 +382,10 @@ final class AppCore {
                 return appIndex.isCommandEnabled(id)
             }
             KeyShortcut.displayedHyperChord = { [settings] in
-                guard settings.hyperKey != .none else { return nil }
+                // tinycast-space: another app can own the Hyper key and still want the ✦ glyph.
+                guard settings.hyperKey != .none
+                    || UserDefaults.standard.bool(forKey: "spaceHyperGlyphWithoutRemap")
+                else { return nil }
                 return KeyShortcut.hyperChord(includesShift: settings.hyperKeyIncludesShift)
             }
             SystemActionRunner.onAsyncFailure = { [weak self] id, failure in
@@ -436,6 +439,8 @@ final class AppCore {
     }
 
     func handleOpenURL(_ url: URL) {
+        // tinycast-space: the link extensions fire when a timer or task finishes.
+        if ConfettiOverlay.claims(url) { return ConfettiOverlay.fire() }
         switch ExtensionOAuthSession.handleCallbackURL(url) {
         case .delivered:
             paletteCoordinator.showPalette(mode: .extensionCommand, restoreAnyMode: true)
